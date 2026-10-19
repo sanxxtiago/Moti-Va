@@ -44,6 +44,8 @@ Escena `Assets/Scenes/Insert.unity`. Tomar piezas y encajarlas en slots de pared
 
 ## OSU (`Assets/Scripts/Gameplay/OSU/`)
 
+> **Nota de nombre**: el ejercicio se llama OSU por la inspiración tomada del videojuego osu! desde el inicio del proyecto, pero su nombre terminó siendo "Toque a toque". Renombrar el ejercicio (identificadores, clases, escenas, assets, persistencia, etc.) implica muchos cambios que no se resuelven solo con buscar y reemplazar; no hacerlo sin planificación.
+
 Escena `Assets/Scenes/OSU.unity`. Alcanzar objetivos con la mano correcta. **No usa `InteractionManager`**: lee raw vía `GameplayHandInput`.
 
 - `OSUBasedExercise.cs : ExerciseController`: delega todo al runner. `Start → Initialize(sequence.GetPhaseTargets())`; `OnExerciseStart → scoreManager.BeginExercise(OSU) + scoreAdapter.BeginExercise + sequenceRunner.StartSequence(sequence, this)`. `SetSpecificData → SetOsuData(TotalInteractionTime, InteractionCount)`.

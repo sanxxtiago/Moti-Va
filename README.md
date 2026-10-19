@@ -58,13 +58,10 @@ Desde la raíz del proyecto:
 dotnet build "Hands.sln" --no-restore
 ```
 
-Si falla con `NETSDK1004` (falta `Temp/obj/**/project.assets.json`, p. ej. tras limpiar `Temp/`) o `MSB4166` (nodo MSBuild cerrado), usar sin `--no-restore` y con un solo nodo:
-
+Si falla 
 ```powershell
 dotnet build "Hands.sln" -m:1
 ```
-
-Notas (ver `AGENTS.md`):
 
 - `Assembly-CSharp.csproj` contiene los scripts del juego; los `.csproj` se regeneran en `Temp/`.
 - Al añadir un `.cs` nuevo, Unity debe reimportar para incluirlo; por eso varias clases auxiliares viven anidadas en archivos ya incluidos (p. ej. `GeneralSuggestionBuilder` en `SessionRecorder.cs`).
@@ -81,8 +78,7 @@ No hay suite de tests propia: los únicos `*Test*.cs` pertenecen a `Assets/UIExt
 - [docs/gameplay.md](docs/gameplay.md) — `GameManager`, ejercicios, interacción, orientación y preparación.
 - [docs/scores-persistence.md](docs/scores-persistence.md) — puntuaciones, persistencia JSON y resumen de sesión.
 - [docs/ui-systems.md](docs/ui-systems.md) — UI, audio, conexión, utilidades y configuración (`Resources`, `ProjectSettings`, `Packages`).
-- `AGENTS.md` — contexto del proyecto y convenciones obligatorias para agentes y contribuidores (event-driven, `[SerializeField] private`, `-=` garantizado, etc.).
-- `Presentacion_MotiVa_Pruebas_Usuario.pptx` — presentación de pruebas de usuario (no normativa técnica).
+
 
 ## Limitaciones conocidas
 
@@ -93,3 +89,4 @@ No hay suite de tests propia: los únicos `*Test*.cs` pertenecen a `Assets/UIExt
 - `SnackbarManager.Show` es no-op si no hay un `SnackbarUI` activo en la escena.
 - Coexisten dos caminos de tracking: pipeline desacoplado (`MotionEventBus`, usado por Insert/fase 3) y lectura raw directa del Leap (`GameplayHandInput` en OSU/Hunter, `LeapServiceProvider` en orientación/preparación). Ver `docs/architecture.md`.
 - El giro palma–antebrazo del SDK no está validado como pronación/supinación anatómica; los umbrales ergonómicos son provisionales del prototipo, no RULA clínico.
+- **Nombre del ejercicio OSU**: se llama así por la inspiración tomada del videojuego osu! desde el inicio del proyecto, pero su dinámica terminó siendo "Toque a toque". Renombrar el ejercicio (identificadores, clases, escenas, assets, persistencia, etc.) implica muchos cambios que no se resuelven solo con buscar y reemplazar; no hacerlo sin planificación. Ver `docs/gameplay.md`.
