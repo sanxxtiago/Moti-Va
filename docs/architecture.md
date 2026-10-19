@@ -28,7 +28,7 @@ Capas de juego y datos:
 - **Puntuación y persistencia** (`Assets/Scripts/ScoreSystem/`, `Assets/Scripts/Persistence/`, `Assets/Scripts/Gameplay/SummaryData/`): scores 0–100, JSON en `persistentDataPath/app/`, journal transaccional de 3 ejercicios. Ver `docs/scores-persistence.md`.
 - **UI/Audio/Conexión** (`Assets/Scripts/UI/`, `Assets/Scripts/Audio/`, `Assets/Scripts/Connection/`, `Assets/Scripts/Utils/`): resultados, snackbars, countdown, trofeos, sonidos, estado Leap. Ver `docs/ui-systems.md`.
 
-Principios (ver `AGENTS.md`): separación de responsabilidades, comunicación event-driven con eventos estáticos `On*` nulo-seguros, suscripción simétrica (`+=` en `OnEnable`, `-=` en `OnDisable`), lógica pura fuera de `MonoBehaviour`, datos planos propios en lugar de tipos del SDK.
+Principios: separación de responsabilidades, comunicación event-driven con eventos estáticos `On*` nulo-seguros, suscripción simétrica (`+=` en `OnEnable`, `-=` en `OnDisable`), lógica pura fuera de `MonoBehaviour`, datos planos propios en lugar de tipos del SDK.
 
 ## Ciclo de vida de un ejercicio
 

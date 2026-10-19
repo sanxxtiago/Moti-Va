@@ -8,7 +8,7 @@ Guía operativa verificada contra `Packages/manifest.json`, `ProjectSettings/`, 
 - Windows Standalone, backend Mono, `.NET Standard 2.1` (`ProjectSettings/ProjectSettings.asset`).
 - Paquetes clave (`Packages/manifest.json`): Ultraleap 7.3.0 vía OpenUPM, URP 15.0.7, Newtonsoft JSON 3.2.2, TextMeshPro 3.0.9, feature VR, Cinemachine 2.9.7. DOTween se activa por defines y `Assets/Resources/DOTweenSettings.asset`.
 - Al abrir, Unity regenera `Library/`, `Temp/` y `*.csproj`. Están ignorados en `.gitignore` junto a `Obj/`, `Builds/`, `Logs/`, `UserSettings/`, `*.sln`, `*.user`, `*.pdb`. No comprometerlos. Los cambios preexistentes en `Library/` o `Temp/` no deben versionarse.
-- Cada script/asset nuevo bajo `Assets/` exige su `.meta` (ver `AGENTS.md`). No crear `.cs` sueltos esperando que compilen sin reimportar: Unity debe regenerar el `.csproj`.
+- Cada script/asset nuevo bajo `Assets/` exige su `.meta`. No crear `.cs` sueltos esperando que compilen sin reimportar: Unity debe regenerar el `.csproj`.
 
 ## Escenas y orden
 
@@ -46,7 +46,7 @@ Atajos y debug verificados:
 ## Compilar por CLI
 
 ```powershell
-dotnet build "Hands.sln" --no-restore
+dotnet build "Moti-Va.sln" --no-restore
 ```
 
 Casos:
@@ -55,7 +55,7 @@ Casos:
 - `MSB4166` (nodo MSBuild cerrado): repetir con `-m:1`:
 
 ```powershell
-dotnet build "Hands.sln" -m:1
+dotnet build "Moti-Va.sln" -m:1
 ```
 
 `Assembly-CSharp.csproj` es el proyecto del juego. Si se añade un `.cs` nuevo y no aparece, reabrir Unity para que regenere proyectos antes de compilar.
@@ -76,7 +76,7 @@ Logs con prefijo (`[SuggestionSystem]`, `[HybridSuggestions]`, `[ScoreSystem]`, 
 
 ## Configuración que no auto-cablea
 
-Asignar en Inspector (ver `AGENTS.md` y `docs/ui-systems.md`):
+Asignar en Inspector (ver `docs/ui-systems.md`):
 
 - `ResultsUI.generalSuggestionText` en las 3 escenas de ejercicio.
 - `SessionReader.generalSuggestionText` en `SessionSummary.unity`.

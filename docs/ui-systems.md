@@ -17,7 +17,7 @@
 ## Audio (`Assets/Scripts/Audio/` + `Assets/Resources/AudioLibrary.asset`)
 
 - `AudioManager.cs` (singleton `DontDestroyOnLoad`): `audioLibrary + masterVolume + audioSource`, loops por `AudioType`; fachada estática nulo-segura `Play/PlayLoop/StopLoop/StopAll`; `BuildLookup` desde el asset.
-- `AudioLibrary.cs` (`CreateAssetMenu Hands/Audio Library`): `List<AudioDefinition{type, clip, volume}>`; `OnValidate` detecta `None`/duplicados. Asset con 19 entradas mapeadas (tipos 1,2,4,5,9–15,17–24).
+- `AudioLibrary.cs` (`CreateAssetMenu Moti-Va/Audio Library`): `List<AudioDefinition{type, clip, volume}>`; `OnValidate` detecta `None`/duplicados. Asset con 19 entradas mapeadas (tipos 1,2,4,5,9–15,17–24).
 - `AudioType.cs`: `None 0, ButtonClick 1, CountdownTick 2, CountdownFinished 3, ExerciseStart 4, ExerciseCompleted 5, Success 6, Warning 7, Error 8, OsuHaloTimer 9, LaserShot 10, PieceSnapped 11, PhaseCompleted 12, ExerciseAmbience 13, MenuTheme 14, DuckHit 15, OsuTargetHit 17, OsuTargetFailed 18, PieceGrabbed 19, DuckEscape 20, TrophyGold/Silver/Bronze 21–23, OrientationTargetPop 24`.
 - Puentes event-driven (auto-suscripción, sin Inspector salvo indicado):
   - `GameAudioFeedback`: `OnExcerciseStart → ExerciseStart + loop Ambience`, `OnExerciseEnd → stop + Completed`, `OnPhaseCompleted → PhaseCompleted`, `OnPieceSnapped/Grabbed`.
@@ -45,7 +45,7 @@
 ## Configuración y recursos
 
 - `Packages/manifest.json`: ver `docs/development.md` (Ultraleap 7.3.0, URP 15.0.7, Newtonsoft 3.2.2, etc.).
-- `ProjectSettings/`: `ProjectSettings.asset` (producto `Hands`, compañía `DefaultCompany`, bundle 0.1.0, Linear, Forward, Mono, `Both` input, appId plantilla URP), `GraphicsSettings` (pipeline URP), `QualitySettings` (actual `High Fidelity`), `AudioManager` (stereo, DSP 1024), `TagManager` (tag `Slot_Cube`; layers `GrabbableLayer`, `PhysicalHands`, `DuckLayer`, `TrophyLayer`, `HunterWall`, ...), `TimeManager` (fixed 90 Hz), `DynamicsManager` (gravedad −9.81, `QueriesHitTriggers`), `XRSettings` + `EditorBuildSettings` (`Oculus.Settings`, loader XR, OpenXR), `URPProjectSettings` (stub; detalle en `Assets/Settings/`).
+- `ProjectSettings/`: `ProjectSettings.asset` (producto `Moti-Va`, compañía `DefaultCompany`, bundle 0.1.0, Linear, Forward, Mono, `Both` input, appId plantilla URP), `GraphicsSettings` (pipeline URP), `QualitySettings` (actual `High Fidelity`), `AudioManager` (stereo, DSP 1024), `TagManager` (tag `Slot_Cube`; layers `GrabbableLayer`, `PhysicalHands`, `DuckLayer`, `TrophyLayer`, `HunterWall`, ...), `TimeManager` (fixed 90 Hz), `DynamicsManager` (gravedad −9.81, `QueriesHitTriggers`), `XRSettings` + `EditorBuildSettings` (`Oculus.Settings`, loader XR, OpenXR), `URPProjectSettings` (stub; detalle en `Assets/Settings/`).
 - `Assets/Resources/`: `Ultraleap Settings.asset`, `DOTweenSettings.asset`, `AudioLibrary.asset`, `ScoreClassificationCatalog.asset` + `DefaultScoreClassificationProfile.asset` (bandas 0/60/80/95), `OSUSequences/` (TEST/DEMO/DEFINITIVE), `OSUPaths/` (10 `PathData`), `DuckSequences/` (TEST/DEMO/DEFINITIVE), `ErgonomicProfiles/` (12 assets: 4 calibración, 4 runtime, 3 ejercicio + Default; ver `docs/tracking-metrics.md` y `docs/suggestions.md`).
 - Perfiles baseline fuera de `Resources`: `Assets/Scripts/SuggestionSystem/Profiles/Insert/OSU/Hunter_ExerciseProfile.asset` (p. ej. Insert 40/40/20 tol 0.1, criticidad 1/0.8/0.6, `minActivity` 0.4; OSU 10/80/10, `minActivity` 0.2).
 - `.gitignore`: ignora `Library/Temp/Obj/Builds/Logs/UserSettings`, `*.csproj/*.sln`, binarios de build y `MemoryCaptures/Recordings`.

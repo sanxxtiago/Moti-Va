@@ -6,7 +6,7 @@ using UnityEngine;
 // hace que la UI de progreso use su sprite de fallback (blanco).
 [CreateAssetMenu(
     fileName = "PieceIconCatalog",
-    menuName = "Hands/Piece Icon Catalog")]
+    menuName = "Moti-Va/Piece Icon Catalog")]
 public sealed class PieceIconCatalog : ScriptableObject
 {
     [Serializable]

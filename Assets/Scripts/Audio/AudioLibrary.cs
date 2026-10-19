@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "AudioLibrary", menuName = "Hands/Audio Library")]
+[CreateAssetMenu(fileName = "AudioLibrary", menuName = "Moti-Va/Audio Library")]
 public class AudioLibrary : ScriptableObject
 {
     [SerializeField] private List<AudioDefinition> sounds = new();

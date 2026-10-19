@@ -1,4 +1,4 @@
-# Hands
+# Moti-Va
 
 Prototipo Unity de prevención motora del miembro superior con **seguimiento de manos sin contacto** (Ultraleap Leap Motion).
 El paciente realiza ejercicios gamificados mientras el sistema **cuantifica el uso articular** (mano, muñeca, antebrazo) y **guía** con sugerencias en vivo y finales.
@@ -55,12 +55,12 @@ Cada ejercicio tiene su variable de desempeño (ver `docs/gameplay.md`): Insert 
 Desde la raíz del proyecto:
 
 ```powershell
-dotnet build "Hands.sln" --no-restore
+dotnet build "Moti-Va.sln" --no-restore
 ```
 
 Si falla 
 ```powershell
-dotnet build "Hands.sln" -m:1
+dotnet build "Moti-Va.sln" -m:1
 ```
 
 - `Assembly-CSharp.csproj` contiene los scripts del juego; los `.csproj` se regeneran en `Temp/`.
