@@ -1,0 +1,322 @@
+using System.Collections.Generic;
+using Leap;
+using Leap.PhysicalHands;
+using UnityEngine;
+
+public class InteractionManager : MonoBehaviour
+{
+    public InteractionTracker tracker;
+    //public InteractionTracker rightTracker;
+
+    public InteractionResolver resolver;
+    public HandType handType;
+
+    [SerializeField] private float grabRadius = 0.1f;
+    [SerializeField] private Vector3 grabOffset = new(0f, 0f, 0.05f);
+    [SerializeField] private LayerMask interactableLayer;
+
+    [Header("Fallos de toma (Q5)")]
+    [Tooltip("Radio para considerar que un GRAB START fallido iba dirigido a una pieza cercana.")]
+    [SerializeField, Min(0f)] private float missProximityRadius = 0.2f;
+    [Tooltip("Tiempo minimo entre dos fallos contabilizados de esta mano (anti-flutter).")]
+    [SerializeField, Min(0f)] private float missDebounce = 0.5f;
+
+    public int FailedTakes { get; private set; }
+    private float lastMissTime = float.NegativeInfinity;
+
+    private Interactable grabbed;
+
+    // Debug
+    [SerializeField] private bool debug = true;
+    [SerializeField] private Transform sphereDebug;
+
+    private Vector3 debugHandPos;
+    //private Vector3 rightDebugPos;
+
+    private bool hasDebug;
+    //private bool hasRightDebug;
+
+    void OnEnable()
+    {
+        tracker.OnInteraction += HandleInteraction;
+        //rightTracker.OnInteraction += HandleInteraction;
+    }
+
+    void OnDisable()
+    {
+        tracker.OnInteraction -= HandleInteraction;
+        //7rightTracker.OnInteraction -= HandleInteraction;
+    }
+
+    void Awake()
+    {
+        tracker = new InteractionTracker(handType);
+        //rightTracker = new InteractionTracker(HandType.RIGHT);
+
+        resolver = new InteractionResolver();
+    }
+
+    void OnDestroy()
+    {
+        tracker?.Dispose();
+        //rightTracker?.Dispose();
+    }
+
+    public void ResetMisses()
+    {
+        FailedTakes = 0;
+        lastMissTime = float.NegativeInfinity;
+    }
+
+    void Update()
+    {
+        sphereDebug.gameObject.SetActive(debug);
+
+        //CheckGrabConsistency();
+    }
+
+    void HandleInteraction(InteractionEvent e)
+    {
+
+        //         Debug.Log(
+        //      $"EVENT -> Hand:{e.handType} " +
+        //      $"Type:{e.type} " +
+        //      $"Phase:{e.phase} " +
+        //      $"Palm:{e.palmPosition}"
+        //  );
+
+        var target = FindTarget(e);
+
+        //Debug.Log($"TARGET FOUND: {(target ? target.name : "NULL")}");
+
+        bool isGrabbing = grabbed != null;
+
+        var resolved = resolver.Resolve(e, target, isGrabbing);
+
+        ApplyInteraction(resolved);
+    }
+
+    Interactable FindTarget(InteractionEvent e)
+    {
+        Vector3 sphereCenter =
+            e.palmPosition +
+            e.palmRotation * grabOffset;
+
+        debugHandPos = sphereCenter;
+        hasDebug = true;
+
+        if (sphereDebug != null)
+            sphereDebug.position = sphereCenter;
+
+        Collider[] hits = Physics.OverlapSphere(
+            sphereCenter,
+            grabRadius,
+            interactableLayer
+        );
+
+        float minDist = float.MaxValue;
+        Interactable best = null;
+
+        foreach (var hit in hits)
+        {
+            if (!hit.TryGetComponent<Interactable>(out var interactable))
+                continue;
+
+            float dist = Vector3.Distance(
+                sphereCenter,
+                hit.ClosestPoint(sphereCenter)
+            );
+
+            if (dist < minDist)
+            {
+                minDist = dist;
+                best = interactable;
+            }
+        }
+
+        return best;
+    }
+
+    void CheckGrabConsistency()
+    {
+        if (grabbed == null)
+            return;
+
+        Collider[] hits = Physics.OverlapSphere(
+            debugHandPos,
+            grabRadius,
+            interactableLayer
+        );
+
+        bool stillInside = false;
+
+        foreach (var hit in hits)
+        {
+            if (!hit.TryGetComponent<Interactable>(out var interactable))
+                continue;
+
+            if (interactable == grabbed)
+            {
+                stillInside = true;
+                return;
+            }
+        }
+
+        if (!stillInside)
+        {
+            //Debug.Log($"Force Release: {grabbed.name}");
+
+            grabbed.ForceRelease();
+        }
+    }
+
+    void ApplyInteraction(ResolvedInteraction r)
+    {
+        //($"HAND: {r.source.handType}");
+
+        // El GRAB debe procesarse siempre, incluso con target null,
+        // para que la fase END pueda liberar el agarre actual cuando
+        // la mano ya se ha alejado de la pieza al soltarla.
+        if (r.target == null && r.type != InteractionType.Grab)
+        {
+            //Debug.Log($"TARGET: NULL");
+
+            return;
+
+        }
+        //Debug.Log($"TARGET: {r.target.name}");
+        switch (r.type)
+        {
+            case InteractionType.Grab:
+                HandleGrab(r);
+                break;
+
+            case InteractionType.Rotate:
+                HandleRotate(r);
+                break;
+
+            case InteractionType.Select:
+                HandleSelect(r);
+                break;
+        }
+    }
+
+    void HandleGrab(ResolvedInteraction r)
+    {
+        var e = r.source;
+
+        if (e.phase == GesturePhase.START)
+        {
+            if (grabbed != null)
+                return;
+
+            if (r.target == null)
+            {
+                TryCountMiss(e);
+                return;
+            }
+
+            if (!r.target.CanInteract(InteractionType.Grab, e.handType))
+            {
+                TryCountMiss(e);
+                return;
+            }
+
+            grabbed = r.target;
+            grabbed.OnForcedRelease += HandleForcedRelease;
+
+            //Debug.Log("Grabbed: " + grabbed.name);
+            grabbed.OnGrabStart(new InteractableData(
+                e.palmPosition,
+                e.palmRotation));
+        }
+
+        if (e.phase == GesturePhase.END)
+        {
+            if (grabbed != null)
+            {
+                grabbed.OnForcedRelease -= HandleForcedRelease;
+                grabbed.OnGrabEnd();
+            }
+            grabbed = null;
+        }
+    }
+
+    private void TryCountMiss(InteractionEvent e)
+    {
+        if (missDebounce > 0f && Time.time - lastMissTime < missDebounce)
+            return;
+
+        if (!HasNearbyPiece(e.palmPosition))
+            return;
+
+        lastMissTime = Time.time;
+        FailedTakes++;
+    }
+
+    private bool HasNearbyPiece(Vector3 palmPosition)
+    {
+        float radius = Mathf.Max(missProximityRadius, grabRadius);
+        if (radius <= 0f)
+            return false;
+
+        Collider[] hits = Physics.OverlapSphere(palmPosition, radius, interactableLayer);
+        for (int i = 0; i < hits.Length; i++)
+        {
+            PieceBehaviour piece = hits[i].GetComponentInParent<PieceBehaviour>();
+            if (piece != null && piece.state != PieceState.Snapped)
+                return true;
+        }
+
+        return false;
+    }
+
+    void HandleRotate(ResolvedInteraction r)
+    {
+        var e = r.source;
+
+        if (grabbed == null) return;
+        if (e.phase != GesturePhase.UPDATE) return;
+
+        var data = new InteractableData(
+            e.palmPosition,
+            e.palmRotation
+        );
+
+        grabbed.OnRotate(data);
+    }
+
+    void HandleSelect(ResolvedInteraction r)
+    {
+        var e = r.source;
+
+        if (e.phase != GesturePhase.START)
+            return;
+
+        var data = new InteractableData(
+            e.palmPosition,
+            e.palmRotation
+        );
+
+        r.target.OnSelect(data);
+    }
+
+    void HandleForcedRelease(Interactable target)
+    {
+        if (grabbed != target)
+            return;
+
+        grabbed.OnGrabEnd();
+        grabbed.OnForcedRelease -= HandleForcedRelease;
+        grabbed = null;
+    }
+
+    void OnDrawGizmos()
+    {
+        if (!hasDebug)
+            return;
+
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(debugHandPos, grabRadius);
+    }
+}

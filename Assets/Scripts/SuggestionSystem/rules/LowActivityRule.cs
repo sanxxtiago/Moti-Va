@@ -1,0 +1,30 @@
+public class LowActivityRule : IRule
+{
+    private float threshold;
+
+    public LowActivityRule(float threshold)
+    {
+        this.threshold = threshold;
+    }
+
+    public Suggestion Build(AnalysisContext ctx)
+    {
+        float severity = threshold > 0f
+            ? (threshold - ctx.activityRatio) / threshold
+            : 1f;
+
+return new Suggestion
+        {
+            message = "Poca actividad: retoma el movimiento con suavidad",
+            severity = UnityEngine.Mathf.Clamp01(severity),
+            type = SuggestionType.LowActivity
+        };
+    }
+
+    public bool Evaluate(AnalysisContext ctx)
+    {
+        return ctx.activityRatio < threshold;
+    }
+
+
+}

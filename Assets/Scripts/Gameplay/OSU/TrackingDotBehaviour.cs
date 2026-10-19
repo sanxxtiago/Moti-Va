@@ -1,0 +1,255 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class TrackingDotBehaviour : DotBehaviour
+{
+    //public float followRadius = 0.05f;
+    public bool IsFollowing { get; private set; }
+    public float TotalTimeOutside { get; private set; }
+    public event Action<bool, float> OnTrackingStateChanged;
+
+    [Tooltip("Tiempo maximo que la mano puede permanecer fuera de la trayectoria de forma continua antes de fallar.")]
+    [SerializeField, Min(0f)] private float maxContinuousTimeOutside = 1f;
+    [Tooltip("Tiempo maximo acumulado fuera de la trayectoria durante todo el seguimiento antes de fallar.")]
+    [SerializeField, Min(0f)] private float maxTotalTimeOutside = 1.2f;
+
+    [SerializeField] private float pathZOffset = 0.005f;
+    [SerializeField] private float trailDistance = 0.03f;
+    [SerializeField] private int samplesPerCurve = 30;
+
+    private float timeOutside;
+    private PathData path;
+    private LineRenderer pathInstance;
+    private readonly List<BezierCurveData> depthAdjustedCurves = new();
+
+    private readonly List<Vector3> pathPoints = new();
+    private readonly List<float> pointDistances = new();
+
+    public void SetPath(
+        PathData path,
+        LineRenderer pathPrefab,
+        float pointsDepth)
+    {
+        this.path = path;
+        timeOutside = 0f;
+        TotalTimeOutside = 0f;
+        IsFollowing = false;
+        depthAdjustedCurves.Clear();
+
+        if (path != null && path.curves != null)
+        {
+            foreach (BezierCurveData curve in path.curves)
+            {
+                if (curve == null || curve.controlPoints == null)
+                    continue;
+
+                Vector3[] adjustedControlPoints =
+                    new Vector3[curve.controlPoints.Length];
+
+                for (int i = 0; i < curve.controlPoints.Length; i++)
+                {
+                    adjustedControlPoints[i] = curve.controlPoints[i];
+                    adjustedControlPoints[i].z = pointsDepth;
+                }
+
+                depthAdjustedCurves.Add(new BezierCurveData
+                {
+                    controlPoints = adjustedControlPoints
+                });
+            }
+        }
+
+        pathInstance = Instantiate(pathPrefab);
+        pathInstance.transform.SetParent(transform, true);
+        pathInstance.transform.position += Vector3.forward * 0.01f;
+
+        DrawPath();
+    }
+
+    public override void Hit()
+    {
+        base.Hit();
+
+        StartCoroutine(StartPathFollowing());
+    }
+
+    IEnumerator StartPathFollowing()
+    {
+        if (depthAdjustedCurves.Count == 0)
+        {
+            Fail();
+            yield break;
+        }
+
+        float travelledDistance = 0;
+
+        foreach (BezierCurveData curve in depthAdjustedCurves)
+        {
+            float curveLength =
+                BezierCurve.GetCurveLength(curve);
+
+            List<CurveSample> arcTable =
+                BezierCurve.BuildArcLengthTable(curve);
+
+            while (travelledDistance < curveLength)
+            {
+                travelledDistance +=
+                    path.speed * Time.deltaTime;
+
+                float localDistance =
+                    Mathf.Min(travelledDistance, curveLength);
+
+                float t =
+                    BezierCurve.GetTAtDistance(
+                        arcTable,
+                        localDistance);
+
+                transform.position =
+                    BezierCurve.BezierCurvePosition(curve, t);
+
+                UpdateVisiblePath(localDistance);
+
+                yield return null;
+            }
+
+            travelledDistance = 0;
+
+            transform.position =
+                BezierCurve.BezierCurvePosition(curve, 1f);
+        }
+
+        yield return new WaitForSeconds(.75f);
+
+        Destroy(pathInstance.gameObject);
+
+        Complete();
+
+        Destroy(gameObject, .25f);
+    }
+
+    public void SetTrackingState(bool isFollowing)
+    {
+        if (IsFollowing != isFollowing)
+            OnTrackingStateChanged?.Invoke(isFollowing, TotalTimeOutside);
+
+        IsFollowing = isFollowing;
+
+        if (bg != null)
+        {
+            Color color =
+                isFollowing ? Color.green : Color.red;
+
+            color.a = 0.6f;
+
+            bg.color = color;
+        }
+    }
+
+    public void Track(GameplayHandData handData)
+    {
+        float dist =
+            Vector3.Distance(handData.position, transform.position);
+
+        if (dist <= hitRadius)
+        {
+            timeOutside = 0;
+            SetTrackingState(true);
+        }
+        else
+        {
+            timeOutside += Time.deltaTime;
+            TotalTimeOutside += Time.deltaTime;
+
+            SetTrackingState(false);
+
+            if (timeOutside >= maxContinuousTimeOutside ||
+                TotalTimeOutside >= maxTotalTimeOutside)
+            {
+                Fail();
+            }
+        }
+    }
+
+    private void DrawPath()
+    {
+        pathPoints.Clear();
+        pointDistances.Clear();
+
+        Vector3 offset = new(0, 0, pathZOffset);
+
+        float accumulatedDistance = 0;
+        Vector3? previous = null;
+
+        foreach (BezierCurveData curve in depthAdjustedCurves)
+        {
+            for (int i = 0; i <= samplesPerCurve; i++)
+            {
+                float t = i / (float)samplesPerCurve;
+
+                Vector3 point =
+                    BezierCurve.BezierCurvePosition(curve, t)
+                    + offset;
+
+                pathPoints.Add(point);
+
+                if (previous.HasValue)
+                {
+                    accumulatedDistance +=
+                        Vector3.Distance(previous.Value, point);
+                }
+
+                pointDistances.Add(accumulatedDistance);
+
+                previous = point;
+            }
+        }
+
+        pathInstance.positionCount = pathPoints.Count;
+        pathInstance.SetPositions(pathPoints.ToArray());
+    }
+
+    private void UpdateVisiblePath(float travelledDistance)
+    {
+        float visibleStart =
+            Mathf.Max(0, travelledDistance - trailDistance);
+
+        int firstVisible = 0;
+
+        while (firstVisible < pointDistances.Count &&
+               pointDistances[firstVisible] < visibleStart)
+        {
+            firstVisible++;
+        }
+
+        int visibleCount =
+            pathPoints.Count - firstVisible;
+
+        if (visibleCount <= 0)
+        {
+            pathInstance.positionCount = 0;
+            return;
+        }
+
+        pathInstance.positionCount = visibleCount;
+
+        for (int i = 0; i < visibleCount; i++)
+        {
+            pathInstance.SetPosition(
+                i,
+                pathPoints[firstVisible + i]);
+        }
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        // Radio de impacto
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, hitRadius);
+
+        // Radio permitido durante el seguimiento
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(transform.position, hitRadius);
+    }
+}
